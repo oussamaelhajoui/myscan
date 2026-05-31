@@ -10,32 +10,29 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppState.self) private var appState
     @Query private var items: [Item]
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
+        @Bindable var appState = appState
+
+        return ZStack {
+            LinearGradient(colors: [Color(.systemBackground), Color(.secondarySystemBackground)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                .ignoresSafeArea()
+            TabView(selection: $appState.selectedTab) {
+                NavigationStack { Home() }
+                    .tabItem { Label("Home", systemImage: "house.fill") }
+                    .tag(AppTab.home)
+
+                NavigationStack { ScanTabView() }
+                    .tabItem { Label("Scan", systemImage: "dot.radiowaves.left.and.right") }
+                    .tag(AppTab.scan)
+
+                NavigationStack { SettingsTabView() }
+                    .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+                    .tag(AppTab.settings)
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
+            .tint(Color.accentColor)
         }
     }
 
@@ -57,5 +54,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .environment(AppState())
+        .modelContainer(for: [ScanFolder.self, Scan.self, ScanResult.self, ScanConfiguration.self, Item.self], inMemory: true)
 }

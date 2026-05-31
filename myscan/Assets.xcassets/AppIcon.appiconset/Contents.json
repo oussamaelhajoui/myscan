@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "foreground-1780258286660.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -12,6 +13,7 @@
           "value" : "dark"
         }
       ],
+      "filename" : "foreground-1780258286660 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -23,6 +25,7 @@
           "value" : "tinted"
         }
       ],
+      "filename" : "mask-1780258288823.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
