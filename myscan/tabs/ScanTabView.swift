@@ -9,6 +9,67 @@ import SwiftUI
 import SwiftData
 import Network
 
+private struct ScanPortHit: Sendable {
+    let host: String
+    let port: Int
+}
+
+private final class ScanLiveOutputBuffer: @unchecked Sendable {
+    nonisolated(unsafe) private var pendingLines: [String] = []
+    nonisolated(unsafe) private var pendingOpenHits: [ScanPortHit] = []
+    nonisolated(unsafe) private var openHits: [ScanPortHit] = []
+    nonisolated(unsafe) private var completedCount = 0
+    nonisolated(unsafe) private var scheduled = false
+    private let lock = NSLock()
+    private let flush: @MainActor (_ lines: [String], _ openHits: [ScanPortHit], _ completedCount: Int) -> Void
+
+    nonisolated init(flush: @escaping @MainActor (_ lines: [String], _ openHits: [ScanPortHit], _ completedCount: Int) -> Void) {
+        self.flush = flush
+    }
+
+    nonisolated func record(host: String, port: Int, isOpen: Bool) {
+        let shouldSchedule = lock.withLock {
+            pendingLines.append("\(host):\(port) - \(isOpen ? "OPEN" : "CLOSED")")
+            completedCount += 1
+            if isOpen {
+                let hit = ScanPortHit(host: host, port: port)
+                pendingOpenHits.append(hit)
+                openHits.append(hit)
+            }
+            if scheduled { return false }
+            scheduled = true
+            return true
+        }
+
+        if shouldSchedule {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                self?.flushPending()
+            }
+        }
+    }
+
+    nonisolated func flushPending() {
+        let payload: (lines: [String], hits: [ScanPortHit], completed: Int) = lock.withLock {
+            scheduled = false
+            let lines = pendingLines
+            let hits = pendingOpenHits
+            let completed = completedCount
+            pendingLines.removeAll()
+            pendingOpenHits.removeAll()
+            return (lines, hits, completed)
+        }
+
+        guard !payload.lines.isEmpty || !payload.hits.isEmpty else { return }
+        Task { @MainActor in
+            flush(payload.lines, payload.hits, payload.completed)
+        }
+    }
+
+    nonisolated func openResultsSnapshot() -> [ScanPortHit] {
+        lock.withLock { openHits }
+    }
+}
+
 struct ScanTabView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var folders: [ScanFolder]
@@ -27,7 +88,8 @@ struct ScanTabView: View {
     @State private var scanTask: Task<Void, Never>? = nil
 
     @State private var enableRetry: Bool = true
-    @State private var pendingResults: [(host: String, port: Int)] = []
+    @State private var scanProgress: Double = 0
+    @State private var scanETAText: String = "ETA --"
 
     private let scanner = NetworkScanner()
     
@@ -109,7 +171,22 @@ struct ScanTabView: View {
 
     private var configurationCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Configuration").font(.headline)
+            HStack(alignment: .center) {
+                Text("Configuration").font(.headline)
+                Spacer()
+                Button {
+                    clearScanOutput()
+                } label: {
+                    Label("Clear", systemImage: "trash")
+                }
+                .buttonStyle(.bordered)
+                Button {
+                    showSavePrompt = true
+                } label: {
+                    Label("Save As", systemImage: "square.and.arrow.down")
+                }
+                .buttonStyle(.bordered)
+            }
             HStack {
                 TextField("Folder name", text: $folderName)
                     .textFieldStyle(.roundedBorder)
@@ -122,19 +199,17 @@ struct ScanTabView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 ProgressView().opacity(isScanning ? 1 : 0)
-                Text(progressText)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                Button("Clear") {
-                    recentLines.removeAll()
-                    hostToOpenPorts.removeAll()
-                    pendingResults.removeAll()
-                    pendingScan = nil
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(progressText)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    ProgressView(value: scanProgress)
+                        .frame(width: 160)
+                    Text(scanETAText)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.bordered)
-                Button("Save As…") { showSavePrompt = true }
-                    .buttonStyle(.bordered)
                 if isScanning {
                     Button("Stop & Save") {
                         stopScan()
@@ -235,9 +310,10 @@ struct ScanTabView: View {
     private func startScan() {
         isScanning = true
         progressText = "Starting..."
+        scanProgress = 0
+        scanETAText = "ETA calculating..."
         recentLines.removeAll()
         hostToOpenPorts.removeAll()
-        pendingResults.removeAll()
         pendingScan = nil
 
         let cfg = activeConfig
@@ -252,6 +328,8 @@ struct ScanTabView: View {
         let saveBehavior = cfg.saveBehavior
         let selectedFolderName = folderName
         let scanner = scanner
+        let totalChecks = max(1, subnet.hostRange.count * ports.count * (shouldRetry ? 2 : 1))
+        let startedAt = Date()
 
         let scan = Scan(subnetDescription: "\(subnet.prefix).x ports: \(ports)")
         pendingScan = scan
@@ -266,13 +344,19 @@ struct ScanTabView: View {
             }
         }
 
-        let foundHandler: @Sendable (String, Int) -> Void = { host, port in
-            Task { @MainActor in
-                recentLines.append("\(host):\(port) - OPEN")
-                if recentLines.count > 50 { recentLines.removeFirst(recentLines.count - 50) }
-                hostToOpenPorts[host, default: []].insert(port)
-                pendingResults.append((host, port))
+        let outputBuffer = ScanLiveOutputBuffer { lines, openHits, completedCount in
+            recentLines.append(contentsOf: lines)
+            if recentLines.count > 1_000 { recentLines.removeFirst(recentLines.count - 1_000) }
+            for hit in openHits {
+                hostToOpenPorts[hit.host, default: []].insert(hit.port)
             }
+
+            scanProgress = min(1, Double(completedCount) / Double(totalChecks))
+            scanETAText = Self.etaText(startedAt: startedAt, completed: completedCount, total: totalChecks)
+        }
+
+        let resultHandler: @Sendable (String, Int, Bool) -> Void = { host, port, isOpen in
+            outputBuffer.record(host: host, port: port, isOpen: isOpen)
         }
 
         scanTask?.cancel()
@@ -284,7 +368,7 @@ struct ScanTabView: View {
                 concurrency: concurrency,
                 token: newToken,
                 onProgress: progressHandler,
-                onFound: foundHandler
+                onResult: resultHandler
             )
 
             if shouldRetry && !newToken.isCancelled {
@@ -295,17 +379,25 @@ struct ScanTabView: View {
                     concurrency: concurrency,
                     token: newToken,
                     onProgress: progressHandler,
-                    onFound: foundHandler
+                    onResult: resultHandler
                 )
             }
+
+            outputBuffer.flushPending()
+            let finalOpenResults = outputBuffer.openResultsSnapshot()
 
             await MainActor.run {
                 isScanning = false
                 activeHostPort = nil
                 progressText = newToken.isCancelled ? "Cancelled" : "Done"
+                scanProgress = newToken.isCancelled ? scanProgress : 1
+                scanETAText = newToken.isCancelled ? "ETA --" : "ETA done"
                 pendingScan?.finishedAt = Date()
                 if let s = pendingScan {
-                    s.results = pendingResults.map { ScanResult(host: $0.host, port: $0.port, isOpen: true) }
+                    s.results = finalOpenResults.map { ScanResult(host: $0.host, port: $0.port, isOpen: true) }
+                }
+                for hit in finalOpenResults {
+                    hostToOpenPorts[hit.host, default: []].insert(hit.port)
                 }
 
                 switch saveBehavior {
@@ -330,6 +422,30 @@ struct ScanTabView: View {
         scanTask?.cancel()
         scanTask = nil
         isScanning = false
+        scanETAText = "ETA --"
+    }
+
+    private func clearScanOutput() {
+        recentLines.removeAll()
+        hostToOpenPorts.removeAll()
+        scanProgress = 0
+        scanETAText = "ETA --"
+        pendingScan = nil
+    }
+
+    private static func etaText(startedAt: Date, completed: Int, total: Int) -> String {
+        guard completed > 0, completed < total else { return completed >= total ? "ETA done" : "ETA calculating..." }
+        let elapsed = Date().timeIntervalSince(startedAt)
+        let remaining = (elapsed / Double(completed)) * Double(total - completed)
+        return "ETA \(Self.formatDuration(remaining))"
+    }
+
+    private static func formatDuration(_ seconds: TimeInterval) -> String {
+        let totalSeconds = max(0, Int(seconds.rounded()))
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        if minutes > 0 { return "\(minutes)m \(seconds)s" }
+        return "\(seconds)s"
     }
 
     private func ensureFolder(named name: String) -> ScanFolder {
