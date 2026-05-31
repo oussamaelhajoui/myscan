@@ -27,6 +27,7 @@ struct ScanTabView: View {
     @State private var scanTask: Task<Void, Never>? = nil
 
     @State private var enableRetry: Bool = true
+    @State private var pendingResults: [(host: String, port: Int)] = []
 
     private let scanner = NetworkScanner()
     
@@ -128,6 +129,7 @@ struct ScanTabView: View {
                 Button("Clear") {
                     recentLines.removeAll()
                     hostToOpenPorts.removeAll()
+                    pendingResults.removeAll()
                     pendingScan = nil
                 }
                 .buttonStyle(.bordered)
@@ -235,6 +237,7 @@ struct ScanTabView: View {
         progressText = "Starting..."
         recentLines.removeAll()
         hostToOpenPorts.removeAll()
+        pendingResults.removeAll()
         pendingScan = nil
 
         let cfg = activeConfig
@@ -246,6 +249,8 @@ struct ScanTabView: View {
         let timeout = cfg.timeoutSeconds
         let concurrency = cfg.maxConcurrency
         let shouldRetry = enableRetry
+        let saveBehavior = cfg.saveBehavior
+        let selectedFolderName = folderName
         let scanner = scanner
 
         let scan = Scan(subnetDescription: "\(subnet.prefix).x ports: \(ports)")
@@ -254,46 +259,59 @@ struct ScanTabView: View {
         let newToken = CancellationToken()
         token = newToken
 
-        func runPass() async {
-            await withCheckedContinuation { continuation in
-                scanner.scan(subnet: subnet, ports: ports, timeout: timeout, concurrency: concurrency, token: newToken, onProgress: { host, port in
-                Task { @MainActor in
-                    activeHostPort = (host, port)
-                    progressText = "Scanning \(host):\(port)"
-                    recentLines.append("> \(host):\(port)")
-                    if recentLines.count > 50 { recentLines.removeFirst(recentLines.count - 50) }
-                }
-            }, onFound: { host, port in
-                Task { @MainActor in
-                    recentLines.append("\(host):\(port) — OPEN")
-                    if recentLines.count > 50 { recentLines.removeFirst(recentLines.count - 50) }
-                    hostToOpenPorts[host, default: []].insert(port)
-                    if let s = pendingScan {
-                        let result = ScanResult(host: host, port: port, isOpen: true)
-                        s.results.append(result)
-                    }
-                }
-                }, onFinish: {
-                    continuation.resume()
-                })
+        let progressHandler: @Sendable (String, Int) -> Void = { host, port in
+            Task { @MainActor in
+                activeHostPort = (host, port)
+                progressText = "Scanning \(host):\(port)"
+            }
+        }
+
+        let foundHandler: @Sendable (String, Int) -> Void = { host, port in
+            Task { @MainActor in
+                recentLines.append("\(host):\(port) - OPEN")
+                if recentLines.count > 50 { recentLines.removeFirst(recentLines.count - 50) }
+                hostToOpenPorts[host, default: []].insert(port)
+                pendingResults.append((host, port))
             }
         }
 
         scanTask?.cancel()
         scanTask = Task.detached {
-            await runPass()
-            if shouldRetry {
-                await runPass()
+            await scanner.scan(
+                subnet: subnet,
+                ports: ports,
+                timeout: timeout,
+                concurrency: concurrency,
+                token: newToken,
+                onProgress: progressHandler,
+                onFound: foundHandler
+            )
+
+            if shouldRetry && !newToken.isCancelled {
+                await scanner.scan(
+                    subnet: subnet,
+                    ports: ports,
+                    timeout: timeout,
+                    concurrency: concurrency,
+                    token: newToken,
+                    onProgress: progressHandler,
+                    onFound: foundHandler
+                )
             }
-            Task { @MainActor in
+
+            await MainActor.run {
                 isScanning = false
                 activeHostPort = nil
-                progressText = (token?.isCancelled == true) ? "Cancelled" : "Done"
+                progressText = newToken.isCancelled ? "Cancelled" : "Done"
                 pendingScan?.finishedAt = Date()
-                switch cfg.saveBehavior {
+                if let s = pendingScan {
+                    s.results = pendingResults.map { ScanResult(host: $0.host, port: $0.port, isOpen: true) }
+                }
+
+                switch saveBehavior {
                 case .auto:
                     if let s = pendingScan {
-                        let folder = ensureFolder(named: folderName)
+                        let folder = ensureFolder(named: selectedFolderName)
                         folder.scans.append(s)
                         try? modelContext.save()
                         pendingScan = nil
@@ -322,7 +340,7 @@ struct ScanTabView: View {
         modelContext.insert(folder)
         return folder
     }
-    
+
     private func knownServiceName(for port: Int) -> String? {
         switch port {
         case 20,21: return "FTP"
