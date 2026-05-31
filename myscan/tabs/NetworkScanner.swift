@@ -15,7 +15,7 @@ struct Subnet {
 }
 
 extension Subnet {
-    static func detected(startHost: Int, endHost: Int) -> Subnet? {
+    nonisolated static func detected(startHost: Int, endHost: Int) -> Subnet? {
         guard let addr = NetworkScanner.getLocalIPv4Address(),
               let prefix = addr.split(separator: ".").prefix(3).joined(separator: ".") as String? else { return nil }
         return Subnet(prefix: prefix, hostRange: startHost...endHost)
@@ -23,18 +23,33 @@ extension Subnet {
 }
 
 final class CancellationToken: @unchecked Sendable {
-    private var _isCancelled = false
+    nonisolated(unsafe) private var _isCancelled = false
     private let lock = NSLock()
-    var isCancelled: Bool { lock.withLock { _isCancelled } }
-    func cancel() { lock.withLock { _isCancelled = true } }
+    nonisolated var isCancelled: Bool { lock.withLock { _isCancelled } }
+    nonisolated func cancel() { lock.withLock { _isCancelled = true } }
 }
 
 private extension NSLock {
-    func withLock<T>(_ body: () -> T) -> T { lock(); defer { unlock() }; return body() }
+    nonisolated func withLock<T>(_ body: () -> T) -> T { lock(); defer { unlock() }; return body() }
+}
+
+private final class CompletionState: @unchecked Sendable {
+    nonisolated(unsafe) private var finished = false
+    private let lock = NSLock()
+
+    nonisolated init() {}
+
+    nonisolated func claim() -> Bool {
+        lock.withLock {
+            if finished { return false }
+            finished = true
+            return true
+        }
+    }
 }
 
 final class NetworkScanner: @unchecked Sendable {
-    func tcpPing(host: String, port: Int, timeout: TimeInterval, queue: DispatchQueue = .global(), completion: @escaping (Bool) -> Void) {
+    nonisolated func tcpPing(host: String, port: Int, timeout: TimeInterval, queue: DispatchQueue = .global(), completion: @escaping (Bool) -> Void) {
         let params = NWParameters.tcp
         params.allowLocalEndpointReuse = true
         let endpoint = NWEndpoint.Host(host)
@@ -42,14 +57,21 @@ final class NetworkScanner: @unchecked Sendable {
         let conn = NWConnection(host: endpoint, port: nwPort, using: params)
 
         let deadline = DispatchTime.now() + timeout
-        var finished = false
+        let completionState = CompletionState()
+
+        let finish: @Sendable (Bool) -> Void = { result in
+            if completionState.claim() {
+                conn.cancel()
+                completion(result)
+            }
+        }
 
         conn.stateUpdateHandler = { state in
             switch state {
             case .ready:
-                if !finished { finished = true; conn.cancel(); completion(true) }
+                finish(true)
             case .failed(_), .cancelled:
-                if !finished { finished = true; completion(false) }
+                finish(false)
             default:
                 break
             }
@@ -58,39 +80,76 @@ final class NetworkScanner: @unchecked Sendable {
         conn.start(queue: queue)
 
         queue.asyncAfter(deadline: deadline) {
-            if !finished { finished = true; conn.cancel(); completion(false) }
+            finish(false)
         }
     }
 
-    func scan(subnet: Subnet, ports: [Int], timeout: TimeInterval, concurrency: Int = 32, token: CancellationToken? = nil, onProgress: @escaping (_ host: String, _ port: Int) -> Void, onFound: @escaping (_ host: String, _ port: Int) -> Void, onFinish: @escaping () -> Void) {
-        let group = DispatchGroup()
-        let semaphore = DispatchSemaphore(value: max(1, concurrency))
-        let queue = DispatchQueue(label: "scanner.queue", attributes: .concurrent)
-
-        outer: for i in subnet.hostRange {
-            for port in ports {
-                if token?.isCancelled == true { break outer }
-                let host = "\(subnet.prefix).\(i)"
-                semaphore.wait()
-                group.enter()
-                onProgress(host, port)
-                tcpPing(host: host, port: port, timeout: timeout, queue: queue) { open in
-                    if token?.isCancelled == true {
-                        semaphore.signal(); group.leave(); return
-                    }
-                    if open { onFound(host, port) }
-                    semaphore.signal()
-                    group.leave()
-                }
+    nonisolated func scan(
+        subnet: Subnet,
+        ports: [Int],
+        timeout: TimeInterval,
+        concurrency: Int = 32,
+        token: CancellationToken? = nil,
+        onProgress: @escaping @Sendable (_ host: String, _ port: Int) -> Void,
+        onFound: @escaping @Sendable (_ host: String, _ port: Int) -> Void
+    ) async {
+        await withCheckedContinuation { continuation in
+            scan(subnet: subnet, ports: ports, timeout: timeout, concurrency: concurrency, token: token, onProgress: onProgress, onFound: onFound) {
+                continuation.resume()
             }
         }
+    }
 
-        group.notify(queue: queue) {
-            onFinish()
+    nonisolated func scan(
+        subnet: Subnet,
+        ports: [Int],
+        timeout: TimeInterval,
+        concurrency: Int = 32,
+        token: CancellationToken? = nil,
+        onProgress: @escaping @Sendable (_ host: String, _ port: Int) -> Void,
+        onFound: @escaping @Sendable (_ host: String, _ port: Int) -> Void,
+        onFinish: @escaping @Sendable () -> Void
+    ) {
+        let group = DispatchGroup()
+        let semaphore = DispatchSemaphore(value: max(1, concurrency))
+        let queue = DispatchQueue(label: "scanner.queue", qos: .userInitiated, attributes: .concurrent)
+        let schedulerQueue = DispatchQueue(label: "scanner.scheduler", qos: .userInitiated)
+
+        schedulerQueue.async {
+            var lastProgress = DispatchTime.now().uptimeNanoseconds
+            let progressInterval: UInt64 = 120_000_000
+
+            outer: for i in subnet.hostRange {
+                for port in ports {
+                    if token?.isCancelled == true { break outer }
+                    let host = "\(subnet.prefix).\(i)"
+                    semaphore.wait()
+                    group.enter()
+                    let now = DispatchTime.now().uptimeNanoseconds
+                    if now - lastProgress >= progressInterval {
+                        lastProgress = now
+                        onProgress(host, port)
+                    }
+                    self.tcpPing(host: host, port: port, timeout: timeout, queue: queue) { open in
+                        if token?.isCancelled == true {
+                            semaphore.signal()
+                            group.leave()
+                            return
+                        }
+                        if open { onFound(host, port) }
+                        semaphore.signal()
+                        group.leave()
+                    }
+                }
+            }
+
+            group.notify(queue: schedulerQueue) {
+                onFinish()
+            }
         }
     }
     
-    static func getLocalIPv4Address() -> String? {
+    nonisolated static func getLocalIPv4Address() -> String? {
         var wifiAddress: String?
         var otherAddress: String?
         var ifaddr: UnsafeMutablePointer<ifaddrs>? = nil
