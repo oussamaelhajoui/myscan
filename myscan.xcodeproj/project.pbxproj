@@ -8,6 +8,8 @@
 
 /* Begin PBXFileReference section */
 		7D065C5C2FCCB07C00F2AB13 /* myscan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = myscan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7D1000012FCCB07C00F2AB13 /* myscanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = myscanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7D1000022FCCB07C00F2AB13 /* myscanUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = myscanUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +18,34 @@
 			path = myscan;
 			sourceTree = "<group>";
 		};
+		7D1000032FCCB07C00F2AB13 /* myscanTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = myscanTests;
+			sourceTree = "<group>";
+		};
+		7D1000042FCCB07C00F2AB13 /* myscanUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = myscanUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		7D065C592FCCB07C00F2AB13 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7D1000052FCCB07C00F2AB13 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7D1000062FCCB07C00F2AB13 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +59,8 @@
 			isa = PBXGroup;
 			children = (
 				7D065C5E2FCCB07C00F2AB13 /* myscan */,
+				7D1000032FCCB07C00F2AB13 /* myscanTests */,
+				7D1000042FCCB07C00F2AB13 /* myscanUITests */,
 				7D065C5D2FCCB07C00F2AB13 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,11 +69,30 @@
 			isa = PBXGroup;
 			children = (
 				7D065C5C2FCCB07C00F2AB13 /* myscan.app */,
+				7D1000012FCCB07C00F2AB13 /* myscanTests.xctest */,
+				7D1000022FCCB07C00F2AB13 /* myscanUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
+
+/* Begin PBXContainerItemProxy section */
+		7D1000072FCCB07C00F2AB13 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7D065C542FCCB07C00F2AB13 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7D065C5B2FCCB07C00F2AB13;
+			remoteInfo = myscan;
+		};
+		7D1000082FCCB07C00F2AB13 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7D065C542FCCB07C00F2AB13 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7D065C5B2FCCB07C00F2AB13;
+			remoteInfo = myscan;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXNativeTarget section */
 		7D065C5B2FCCB07C00F2AB13 /* myscan */ = {
@@ -70,6 +117,52 @@
 			productReference = 7D065C5C2FCCB07C00F2AB13 /* myscan.app */;
 			productType = "com.apple.product-type.application";
 		};
+		7D1000092FCCB07C00F2AB13 /* myscanTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7D10000A2FCCB07C00F2AB13 /* Build configuration list for PBXNativeTarget "myscanTests" */;
+			buildPhases = (
+				7D10000B2FCCB07C00F2AB13 /* Sources */,
+				7D1000052FCCB07C00F2AB13 /* Frameworks */,
+				7D10000C2FCCB07C00F2AB13 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7D10000D2FCCB07C00F2AB13 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				7D1000032FCCB07C00F2AB13 /* myscanTests */,
+			);
+			name = myscanTests;
+			packageProductDependencies = (
+			);
+			productName = myscanTests;
+			productReference = 7D1000012FCCB07C00F2AB13 /* myscanTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		7D10000E2FCCB07C00F2AB13 /* myscanUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7D10000F2FCCB07C00F2AB13 /* Build configuration list for PBXNativeTarget "myscanUITests" */;
+			buildPhases = (
+				7D1000102FCCB07C00F2AB13 /* Sources */,
+				7D1000062FCCB07C00F2AB13 /* Frameworks */,
+				7D1000112FCCB07C00F2AB13 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7D1000122FCCB07C00F2AB13 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				7D1000042FCCB07C00F2AB13 /* myscanUITests */,
+			);
+			name = myscanUITests;
+			packageProductDependencies = (
+			);
+			productName = myscanUITests;
+			productReference = 7D1000022FCCB07C00F2AB13 /* myscanUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -82,6 +175,14 @@
 				TargetAttributes = {
 					7D065C5B2FCCB07C00F2AB13 = {
 						CreatedOnToolsVersion = 26.5;
+					};
+					7D1000092FCCB07C00F2AB13 = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = 7D065C5B2FCCB07C00F2AB13;
+					};
+					7D10000E2FCCB07C00F2AB13 = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = 7D065C5B2FCCB07C00F2AB13;
 					};
 				};
 			};
@@ -100,12 +201,28 @@
 			projectRoot = "";
 			targets = (
 				7D065C5B2FCCB07C00F2AB13 /* myscan */,
+				7D1000092FCCB07C00F2AB13 /* myscanTests */,
+				7D10000E2FCCB07C00F2AB13 /* myscanUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		7D065C5A2FCCB07C00F2AB13 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7D10000C2FCCB07C00F2AB13 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7D1000112FCCB07C00F2AB13 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +239,34 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7D10000B2FCCB07C00F2AB13 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7D1000102FCCB07C00F2AB13 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7D10000D2FCCB07C00F2AB13 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7D065C5B2FCCB07C00F2AB13 /* myscan */;
+			targetProxy = 7D1000072FCCB07C00F2AB13 /* PBXContainerItemProxy */;
+		};
+		7D1000122FCCB07C00F2AB13 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7D065C5B2FCCB07C00F2AB13 /* myscan */;
+			targetProxy = 7D1000082FCCB07C00F2AB13 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		7D065C672FCCB07E00F2AB13 /* Debug */ = {
@@ -259,6 +403,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "myscan scans devices and services on networks you choose.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -291,6 +436,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "myscan scans devices and services on networks you choose.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -307,6 +453,90 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		7D1000132FCCB07C00F2AB13 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = H94LRLL489;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.snowsites.myscanTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/myscan.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/myscan";
+			};
+			name = Debug;
+		};
+		7D1000142FCCB07C00F2AB13 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = H94LRLL489;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.snowsites.myscanTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/myscan.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/myscan";
+			};
+			name = Release;
+		};
+		7D1000152FCCB07C00F2AB13 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = H94LRLL489;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.snowsites.myscanUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = myscan;
+			};
+			name = Debug;
+		};
+		7D1000162FCCB07C00F2AB13 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = H94LRLL489;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.snowsites.myscanUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = myscan;
 			};
 			name = Release;
 		};
@@ -327,6 +557,24 @@
 			buildConfigurations = (
 				7D065C6A2FCCB07E00F2AB13 /* Debug */,
 				7D065C6B2FCCB07E00F2AB13 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7D10000A2FCCB07C00F2AB13 /* Build configuration list for PBXNativeTarget "myscanTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7D1000132FCCB07C00F2AB13 /* Debug */,
+				7D1000142FCCB07C00F2AB13 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7D10000F2FCCB07C00F2AB13 /* Build configuration list for PBXNativeTarget "myscanUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7D1000152FCCB07C00F2AB13 /* Debug */,
+				7D1000162FCCB07C00F2AB13 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

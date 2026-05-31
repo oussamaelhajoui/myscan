@@ -91,10 +91,10 @@ final class NetworkScanner: @unchecked Sendable {
         concurrency: Int = 32,
         token: CancellationToken? = nil,
         onProgress: @escaping @Sendable (_ host: String, _ port: Int) -> Void,
-        onFound: @escaping @Sendable (_ host: String, _ port: Int) -> Void
+        onResult: @escaping @Sendable (_ host: String, _ port: Int, _ isOpen: Bool) -> Void
     ) async {
         await withCheckedContinuation { continuation in
-            scan(subnet: subnet, ports: ports, timeout: timeout, concurrency: concurrency, token: token, onProgress: onProgress, onFound: onFound) {
+            scan(subnet: subnet, ports: ports, timeout: timeout, concurrency: concurrency, token: token, onProgress: onProgress, onResult: onResult) {
                 continuation.resume()
             }
         }
@@ -107,7 +107,7 @@ final class NetworkScanner: @unchecked Sendable {
         concurrency: Int = 32,
         token: CancellationToken? = nil,
         onProgress: @escaping @Sendable (_ host: String, _ port: Int) -> Void,
-        onFound: @escaping @Sendable (_ host: String, _ port: Int) -> Void,
+        onResult: @escaping @Sendable (_ host: String, _ port: Int, _ isOpen: Bool) -> Void,
         onFinish: @escaping @Sendable () -> Void
     ) {
         let group = DispatchGroup()
@@ -136,7 +136,7 @@ final class NetworkScanner: @unchecked Sendable {
                             group.leave()
                             return
                         }
-                        if open { onFound(host, port) }
+                        onResult(host, port, open)
                         semaphore.signal()
                         group.leave()
                     }
