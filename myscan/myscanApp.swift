@@ -10,9 +10,15 @@ import SwiftData
 
 @main
 struct myscanApp: App {
+    @State private var appState = AppState()
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            ScanFolder.self,
+            Scan.self,
+            ScanResult.self,
+            ScanConfiguration.self,
+            Item.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -26,6 +32,7 @@ struct myscanApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(appState)
         }
         .modelContainer(sharedModelContainer)
     }
